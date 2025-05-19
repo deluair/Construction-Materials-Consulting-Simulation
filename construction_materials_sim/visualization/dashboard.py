@@ -150,6 +150,13 @@ class SimulationDashboard:
                             html.H3("Regional Adoption"),
                             dcc.Graph(id="regional-adoption-chart")
                         ], width=6)
+                    ]),
+                    
+                    dbc.Row([
+                        dbc.Col([
+                            html.H3("Regional Market Evolution"),
+                            dcc.Graph(id="regional-evolution-chart")
+                        ], width=12)
                     ])
                 ]),
                 
@@ -164,6 +171,13 @@ class SimulationDashboard:
                             html.H3("Adoption Forecast"),
                             dcc.Graph(id="adoption-forecast-chart")
                         ], width=6)
+                    ]),
+                    
+                    dbc.Row([
+                        dbc.Col([
+                            html.H3("Sensitivity Analysis"),
+                            dcc.Graph(id="sensitivity-analysis-chart")
+                        ], width=12)
                     ]),
                     
                     dbc.Row([
@@ -189,8 +203,10 @@ class SimulationDashboard:
                 Output("regional-comparison-chart", "figure"),
                 Output("regional-emissions-chart", "figure"),
                 Output("regional-adoption-chart", "figure"),
+                Output("regional-evolution-chart", "figure"),
                 Output("emissions-heatmap", "figure"),
                 Output("adoption-forecast-chart", "figure"),
+                Output("sensitivity-analysis-chart", "figure"),
                 Output("detailed-summary-report", "children")
             ],
             [
@@ -236,7 +252,7 @@ class SimulationDashboard:
                 results['market_adoption'].reset_index(),
                 x='index',
                 y=results['market_adoption'].columns,
-                title="Market Adoption by Segment",
+                title="Market Adoption by Segment and Region",
                 labels={'index': 'Year', 'value': 'Adoption Rate'}
             )
             
@@ -252,7 +268,7 @@ class SimulationDashboard:
                 results['market_value'].reset_index(),
                 x='index',
                 y=results['market_value'].columns,
-                title="Market Value by Segment",
+                title="Market Value by Segment and Region",
                 labels={'index': 'Year', 'value': 'Value (billion EUR)'}
             )
             
@@ -270,6 +286,39 @@ class SimulationDashboard:
             regional_fig = analysis.create_regional_comparison()
             heatmap_fig = analysis.create_emissions_heatmap()
             forecast_fig = analysis.create_adoption_forecast()
+            
+            # Generate regional evolution visualization
+            evolution_fig = px.line(
+                results['regional_evolution'].reset_index(),
+                x='index',
+                y=results['regional_evolution'].columns,
+                title="Regional Market Evolution",
+                labels={'index': 'Year', 'value': 'Evolution Metric'}
+            )
+            
+            # Generate sensitivity analysis
+            sensitivity_variations = {
+                'carbon_price_growth': [0.05, 0.08, 0.12],
+                'customer_adoption_rate': [0.05, 0.08, 0.12],
+                'green_premium_start': [0.10, 0.15, 0.20]
+            }
+            sensitivity_results = analysis.perform_sensitivity_analysis(scenario, sensitivity_variations)
+            
+            sensitivity_fig = go.Figure()
+            for param, results_df in sensitivity_results.items():
+                sensitivity_fig.add_trace(go.Scatter(
+                    x=results_df['parameter_value'],
+                    y=results_df['market_value_2040'],
+                    name=param,
+                    mode='lines+markers'
+                ))
+            
+            sensitivity_fig.update_layout(
+                title="Sensitivity Analysis",
+                xaxis_title="Parameter Value",
+                yaxis_title="Market Value in 2040 (billion EUR)",
+                showlegend=True
+            )
             
             # Generate detailed summary report
             summary = analysis.generate_detailed_report()
@@ -314,6 +363,8 @@ class SimulationDashboard:
                 regional_fig,
                 heatmap_fig,
                 forecast_fig,
+                evolution_fig,
+                sensitivity_fig,
                 summary_html
             )
     

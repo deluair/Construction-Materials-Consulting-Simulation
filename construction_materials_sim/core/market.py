@@ -2,236 +2,163 @@
 Market Transformation and Customer Adoption Simulation (2025-2040)
 """
 
-import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+import numpy as np
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
-from datetime import datetime
-
-from .steel import SteelIndustryModel, SteelScenario
-from .cement import CementIndustryModel, CementScenario
-from .carbon_pricing import CarbonPricingModel, CarbonPriceScenario
 
 @dataclass
 class MarketScenario:
-    """Market transformation scenario configuration"""
+    """Market scenario parameters"""
     name: str
-    # Carbon pricing parameters
     carbon_price_start: float
     carbon_price_growth: float
-    # Steel industry parameters
     steel_hydrogen_cost_start: float
     steel_hydrogen_cost_growth: float
     steel_electricity_cost_start: float
     steel_electricity_cost_growth: float
-    # Cement industry parameters
     cement_electricity_cost_start: float
     cement_electricity_cost_growth: float
     cement_alternative_fuel_cost_start: float
     cement_alternative_fuel_cost_growth: float
-    # Market adoption parameters
-    green_premium_start: float  # Percentage premium for green products
+    green_premium_start: float
     green_premium_growth: float
     customer_adoption_rate: float
     regulatory_pressure_growth: float
+    regional_variations: Dict[str, Dict[str, float]] = None
 
 class MarketTransformationModel:
-    """Simulates market transformation and customer adoption patterns"""
+    """Market transformation and customer adoption model"""
     
-    def __init__(self, start_year: int = 2025, end_year: int = 2040):
-        self.start_year = start_year
-        self.end_year = end_year
-        self.years = np.arange(start_year, end_year + 1)
+    def __init__(self):
+        self.start_year = 2025
+        self.end_year = 2040
+        self.years = range(self.start_year, self.end_year + 1)
         
-        # Initialize sub-models
-        self.carbon_model = CarbonPricingModel(start_year, end_year)
-        self.steel_model = SteelIndustryModel(start_year, end_year)
-        self.cement_model = CementIndustryModel(start_year, end_year)
-        
-        # Initialize market data
-        self._init_market_data()
-    
-    def _init_market_data(self):
-        """Initialize market data with realistic values"""
-        # Customer segments
-        self.customer_segments = {
-            'Public Infrastructure': {
-                'share': 0.25,
-                'green_premium_willingness': 0.15,
-                'regulatory_sensitivity': 0.9
+        # Initialize regional market characteristics
+        self.regional_markets = {
+            'Europe': {
+                'market_maturity': 0.8,
+                'regulatory_pressure': 0.9,
+                'price_sensitivity': 0.7
             },
-            'Commercial Construction': {
-                'share': 0.35,
-                'green_premium_willingness': 0.10,
-                'regulatory_sensitivity': 0.7
+            'North_America': {
+                'market_maturity': 0.7,
+                'regulatory_pressure': 0.8,
+                'price_sensitivity': 0.8
             },
-            'Residential Construction': {
-                'share': 0.20,
-                'green_premium_willingness': 0.05,
-                'regulatory_sensitivity': 0.5
+            'Asia': {
+                'market_maturity': 0.6,
+                'regulatory_pressure': 0.6,
+                'price_sensitivity': 0.9
             },
-            'Industrial': {
-                'share': 0.20,
-                'green_premium_willingness': 0.08,
-                'regulatory_sensitivity': 0.6
+            'Other': {
+                'market_maturity': 0.5,
+                'regulatory_pressure': 0.5,
+                'price_sensitivity': 0.95
             }
         }
         
-        # Regional market shares
-        self.regional_shares = {
-            'Europe': 0.25,
-            'North America': 0.20,
-            'Asia': 0.40,
-            'Other': 0.15
+        # Initialize customer segments
+        self.customer_segments = {
+            'Early_Adopters': {
+                'size': 0.2,
+                'price_sensitivity': 0.5,
+                'adoption_rate': 0.15
+            },
+            'Mainstream': {
+                'size': 0.6,
+                'price_sensitivity': 0.8,
+                'adoption_rate': 0.08
+            },
+            'Late_Adopters': {
+                'size': 0.2,
+                'price_sensitivity': 0.9,
+                'adoption_rate': 0.04
+            }
         }
-        
-        # Initial green product adoption
-        self.initial_green_adoption = 0.05  # 5% initial adoption
     
     def simulate_scenario(self, scenario: MarketScenario) -> Dict[str, pd.DataFrame]:
-        """
-        Simulate market transformation under given scenario
+        """Simulate market transformation for a given scenario"""
         
-        Args:
-            scenario: MarketScenario configuration
+        # Initialize results DataFrames
+        market_adoption = pd.DataFrame(index=self.years)
+        market_value = pd.DataFrame(index=self.years)
+        regional_evolution = pd.DataFrame(index=self.years)
+        
+        # Initialize regional market characteristics
+        for region in self.regional_markets:
+            market_adoption[f'{region}_Early_Adopters'] = 0.0
+            market_adoption[f'{region}_Mainstream'] = 0.0
+            market_adoption[f'{region}_Late_Adopters'] = 0.0
+            market_value[f'{region}_Value'] = 0.0
+            regional_evolution[f'{region}_Maturity'] = self.regional_markets[region]['market_maturity']
+            regional_evolution[f'{region}_Regulatory'] = self.regional_markets[region]['regulatory_pressure']
+            regional_evolution[f'{region}_Price_Sensitivity'] = self.regional_markets[region]['price_sensitivity']
+        
+        # Simulate market evolution
+        for year in self.years:
+            year_idx = year - self.start_year
             
-        Returns:
-            Dictionary containing simulation results
-        """
-        # Run sub-model simulations
-        carbon_results = self._run_carbon_simulation(scenario)
-        steel_results = self._run_steel_simulation(scenario)
-        cement_results = self._run_cement_simulation(scenario)
-        
-        # Calculate market adoption
-        adoption = self._calculate_market_adoption(scenario)
-        
-        # Calculate green premium evolution
-        premium = self._calculate_green_premium(scenario)
-        
-        # Calculate market value evolution
-        market_value = self._calculate_market_value(adoption, premium)
+            # Calculate regional market evolution
+            for region in self.regional_markets:
+                # Update market characteristics
+                regional_evolution.loc[year, f'{region}_Maturity'] = min(
+                    1.0,
+                    self.regional_markets[region]['market_maturity'] * (1 + scenario.customer_adoption_rate) ** year_idx
+                )
+                regional_evolution.loc[year, f'{region}_Regulatory'] = min(
+                    1.0,
+                    self.regional_markets[region]['regulatory_pressure'] * (1 + scenario.regulatory_pressure_growth) ** year_idx
+                )
+                regional_evolution.loc[year, f'{region}_Price_Sensitivity'] = max(
+                    0.3,
+                    self.regional_markets[region]['price_sensitivity'] * (1 - 0.02) ** year_idx
+                )
+                
+                # Calculate adoption for each segment
+                for segment, params in self.customer_segments.items():
+                    # Calculate segment-specific adoption rate
+                    base_adoption_rate = params['adoption_rate']
+                    regional_factor = regional_evolution.loc[year, f'{region}_Maturity']
+                    regulatory_factor = regional_evolution.loc[year, f'{region}_Regulatory']
+                    
+                    adoption_rate = base_adoption_rate * regional_factor * regulatory_factor
+                    
+                    # Calculate adoption
+                    if year_idx == 0:
+                        market_adoption.loc[year, f'{region}_{segment}'] = adoption_rate
+                    else:
+                        prev_adoption = market_adoption.loc[year-1, f'{region}_{segment}']
+                        market_adoption.loc[year, f'{region}_{segment}'] = min(
+                            1.0,
+                            prev_adoption + adoption_rate * (1 - prev_adoption)
+                        )
+                
+                # Calculate market value
+                total_adoption = sum(
+                    market_adoption.loc[year, f'{region}_{segment}'] * params['size']
+                    for segment, params in self.customer_segments.items()
+                )
+                
+                # Calculate green premium
+                green_premium = scenario.green_premium_start * (1 + scenario.green_premium_growth) ** year_idx
+                
+                # Calculate regional market value
+                base_value = 100  # Base market value in billion EUR
+                regional_value = base_value * total_adoption * (1 + green_premium)
+                market_value.loc[year, f'{region}_Value'] = regional_value
         
         return {
-            'carbon_pricing': carbon_results,
-            'steel_industry': steel_results,
-            'cement_industry': cement_results,
-            'market_adoption': adoption,
-            'green_premium': premium,
-            'market_value': market_value
+            'market_adoption': market_adoption,
+            'market_value': market_value,
+            'regional_evolution': regional_evolution
         }
-    
-    def _run_carbon_simulation(self, scenario: MarketScenario) -> Dict[str, pd.DataFrame]:
-        """Run carbon pricing simulation"""
-        carbon_scenario = CarbonPriceScenario(
-            name=scenario.name,
-            eu_ets_base=scenario.carbon_price_start,
-            eu_ets_growth_rate=scenario.carbon_price_growth,
-            cbam_implementation_year=2026,
-            us_carbon_price_start=scenario.carbon_price_start * 0.8,
-            us_carbon_price_growth=scenario.carbon_price_growth,
-            asian_market_adoption_rate=0.05
-        )
-        return self.carbon_model.simulate_scenario(carbon_scenario)
-    
-    def _run_steel_simulation(self, scenario: MarketScenario) -> Dict[str, pd.DataFrame]:
-        """Run steel industry simulation"""
-        steel_scenario = SteelScenario(
-            name=scenario.name,
-            carbon_price_start=scenario.carbon_price_start,
-            carbon_price_growth=scenario.carbon_price_growth,
-            hydrogen_cost_start=scenario.steel_hydrogen_cost_start,
-            hydrogen_cost_growth=scenario.steel_hydrogen_cost_growth,
-            electricity_cost_start=scenario.steel_electricity_cost_start,
-            electricity_cost_growth=scenario.steel_electricity_cost_growth,
-            scrap_availability_growth=0.03,
-            technology_adoption_rate=0.05
-        )
-        return self.steel_model.simulate_scenario(steel_scenario)
-    
-    def _run_cement_simulation(self, scenario: MarketScenario) -> Dict[str, pd.DataFrame]:
-        """Run cement industry simulation"""
-        cement_scenario = CementScenario(
-            name=scenario.name,
-            carbon_price_start=scenario.carbon_price_start,
-            carbon_price_growth=scenario.carbon_price_growth,
-            electricity_cost_start=scenario.cement_electricity_cost_start,
-            electricity_cost_growth=scenario.cement_electricity_cost_growth,
-            alternative_fuel_cost_start=scenario.cement_alternative_fuel_cost_start,
-            alternative_fuel_cost_growth=scenario.cement_alternative_fuel_cost_growth,
-            clinker_substitution_rate=0.05,
-            technology_adoption_rate=0.04
-        )
-        return self.cement_model.simulate_scenario(cement_scenario)
-    
-    def _calculate_market_adoption(self, scenario: MarketScenario) -> pd.DataFrame:
-        """Calculate market adoption of green products by segment"""
-        adoption = pd.DataFrame(index=self.years)
-        
-        # Calculate regulatory pressure evolution
-        regulatory_pressure = (1 + scenario.regulatory_pressure_growth) ** (self.years - self.start_year)
-        
-        # Calculate adoption by segment
-        for segment, params in self.customer_segments.items():
-            # Initial adoption
-            adoption[segment] = self.initial_green_adoption
-            
-            # Calculate adoption evolution
-            for year in self.years[1:]:
-                prev_year = year - 1
-                
-                # Calculate adoption drivers
-                regulatory_driver = params['regulatory_sensitivity'] * regulatory_pressure[year - self.start_year]
-                market_driver = scenario.customer_adoption_rate
-                
-                # Calculate new adoption rate
-                adoption.loc[year, segment] = min(
-                    1.0,
-                    adoption.loc[prev_year, segment] + 
-                    (1 - adoption.loc[prev_year, segment]) * (regulatory_driver + market_driver)
-                )
-        
-        return adoption
-    
-    def _calculate_green_premium(self, scenario: MarketScenario) -> pd.DataFrame:
-        """Calculate green premium evolution"""
-        premium = pd.DataFrame(index=self.years)
-        
-        # Calculate base premium evolution
-        base_premium = scenario.green_premium_start * (1 + scenario.green_premium_growth) ** (self.years - self.start_year)
-        
-        # Calculate premium by segment
-        for segment, params in self.customer_segments.items():
-            premium[segment] = base_premium * params['green_premium_willingness']
-        
-        return premium
-    
-    def _calculate_market_value(
-        self,
-        adoption: pd.DataFrame,
-        premium: pd.DataFrame
-    ) -> pd.DataFrame:
-        """Calculate market value evolution"""
-        market_value = pd.DataFrame(index=self.years)
-        
-        # Base market value (billion EUR)
-        base_value = 1000.0  # Starting from 2025
-        market_growth = 0.03  # 3% annual growth
-        
-        # Calculate total market value
-        total_value = base_value * (1 + market_growth) ** (self.years - self.start_year)
-        
-        # Calculate value by segment
-        for segment in self.customer_segments:
-            segment_share = self.customer_segments[segment]['share']
-            market_value[segment] = total_value * segment_share * (1 + premium[segment])
-        
-        return market_value
 
 # Example usage
 if __name__ == "__main__":
-    # Create a baseline scenario
-    baseline_scenario = MarketScenario(
+    # Create baseline scenario
+    scenario = MarketScenario(
         name="Baseline",
         carbon_price_start=80.0,
         carbon_price_growth=0.08,
@@ -249,16 +176,16 @@ if __name__ == "__main__":
         regulatory_pressure_growth=0.10
     )
     
-    # Initialize and run simulation
+    # Create and run simulation
     model = MarketTransformationModel()
-    results = model.simulate_scenario(baseline_scenario)
+    results = model.simulate_scenario(scenario)
     
-    # Print summary of results
-    print("\nMarket Adoption by Segment:")
-    print(results['market_adoption'].tail())
+    # Print results
+    print("\nMarket Adoption by Region and Segment (2040):")
+    print(results['market_adoption'].iloc[-1])
     
-    print("\nGreen Premium by Segment:")
-    print(results['green_premium'].tail())
+    print("\nMarket Value by Region (2040):")
+    print(results['market_value'].iloc[-1])
     
-    print("\nMarket Value by Segment (billion EUR):")
-    print(results['market_value'].tail()) 
+    print("\nRegional Market Evolution (2040):")
+    print(results['regional_evolution'].iloc[-1]) 
