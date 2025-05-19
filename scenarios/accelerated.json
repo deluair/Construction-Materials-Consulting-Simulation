@@ -1,0 +1,18 @@
+{
+    "name": "Accelerated",
+    "description": "Accelerated scenario with high carbon price growth and rapid technology adoption",
+    "carbon_price_start": 100.0,
+    "carbon_price_growth": 0.12,
+    "steel_hydrogen_cost_start": 4.0,
+    "steel_hydrogen_cost_growth": -0.08,
+    "steel_electricity_cost_start": 60.0,
+    "steel_electricity_cost_growth": 0.01,
+    "cement_electricity_cost_start": 60.0,
+    "cement_electricity_cost_growth": 0.01,
+    "cement_alternative_fuel_cost_start": 30.0,
+    "cement_alternative_fuel_cost_growth": -0.05,
+    "green_premium_start": 0.20,
+    "green_premium_growth": 0.08,
+    "customer_adoption_rate": 0.12,
+    "regulatory_pressure_growth": 0.15
+} 

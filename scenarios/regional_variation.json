@@ -1,0 +1,36 @@
+{
+    "name": "Regional Variation",
+    "description": "Scenario with significant regional variations in adoption rates and costs",
+    "carbon_price_start": 90.0,
+    "carbon_price_growth": 0.10,
+    "steel_hydrogen_cost_start": 4.0,
+    "steel_hydrogen_cost_growth": -0.06,
+    "steel_electricity_cost_start": 60.0,
+    "steel_electricity_cost_growth": 0.02,
+    "cement_electricity_cost_start": 60.0,
+    "cement_electricity_cost_growth": 0.02,
+    "cement_alternative_fuel_cost_start": 30.0,
+    "cement_alternative_fuel_cost_growth": -0.04,
+    "green_premium_start": 0.18,
+    "green_premium_growth": 0.06,
+    "customer_adoption_rate": 0.10,
+    "regulatory_pressure_growth": 0.12,
+    "regional_variations": {
+        "Europe": {
+            "adoption_multiplier": 1.5,
+            "cost_multiplier": 1.2
+        },
+        "North America": {
+            "adoption_multiplier": 1.2,
+            "cost_multiplier": 1.0
+        },
+        "Asia": {
+            "adoption_multiplier": 0.8,
+            "cost_multiplier": 0.8
+        },
+        "Other": {
+            "adoption_multiplier": 0.6,
+            "cost_multiplier": 0.7
+        }
+    }
+} 
